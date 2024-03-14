@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Health Vitals</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Health Vitals</h1>
+    </header>
+    
+    <section id="add-period">
+        <h2>Add Period</h2>
+        <form action="/add_period" method="POST">
+            <input type="date" name="start_date" placeholder="Start Date">
+            <input type="date" name="end_date" placeholder="End Date">
+            <textarea name="symptoms" placeholder="Symptoms"></textarea>
+            <button type="submit">Add Period</button>
+        </form>
+    </section>
+
+    <section id="analyse-period">
+        <h2>Analyse Period</h2>
+        <button type="submit" id="analyseButton">Analyse</button>
+        <div id="nextPeriodInfo" style="display: none;">
+            <h3>Next Period</h3>
+            <p id="nextPeriodStartDate"></p>
+            <p id="nextPeriodEndDate"></p>
+        </div>
+    </section>
+
+    <section id="period-history">
+        <h2>Period History</h2>
+        <form action="/filter_periods" method="POST">
+            <input type="date" name="start_date" placeholder="Start Date">
+            <input type="date" name="end_date" placeholder="End Date">
+            <button type="submit">Filter</button>
+        </form>
+        <table>
+            <thead>
+                <tr>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Symptoms</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for period in periods %}
+                <tr>
+                    <td>{{ period.start_date }}</td>
+                    <td>{{ period.end_date }}</td>
+                    <td>{{ period.symptoms }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <section id="add-calorie-intake">
+        <h2>Add Calorie Intake</h2>
+        <form action="/add_calorie_intake" method="POST">
+            <input type="date" name="date" placeholder="Date">
+            <input type="text" name="meal_name" placeholder="Meal Name">
+            <input type="number" name="calorie_count" placeholder="Calorie Count">
+            <button type="submit">Add Calorie Intake</button>
+        </form>
+    </section>
+
+    <section id="calorie-intake-history">
+        <h2>Calorie Intake History</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Meal Name</th>
+                    <th>Calorie Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for calorie_intake in calorie_intakes %}
+                <tr>
+                    <td>{{ calorie_intake.date }}</td>
+                    <td>{{ calorie_intake.meal_name }}</td>
+                    <td>{{ calorie_intake.calorie_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <section id="export-calorie-intake">
+        <h2>Export Calorie Intake</h2>
+        <form action="/export_calorie_intake_pdf" method="GET">
+            <button type="submit">Export as PDF</button>
+        </form>
+        <form action="/export_calorie_intake_csv" method="GET">
+            <button type="submit">Export as CSV</button>
+        </form>
+    </section>
+
+    <section id="calorie-intake-visualization">
+        <h2>Calorie Intake Visualization</h2>
+        <button id="showVisualization">Show Visualization</button>
+        <div id="plot"></div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                document.getElementById('showVisualization').addEventListener('click', function() {
+                    fetch('/calorie_intake_visualization')
+                        .then(response => response.json())
+                        .then(data => {
+                            const trace1 = {
+                                x: data.daily_dates,
+                                y: data.daily_calories,
+                                type: 'scatter',
+                                mode: 'lines',
+                                name: 'Daily Calorie Intake'
+                            };
+    
+                            // Define trace2 and trace3 similarly...
+                            const trace2 = {
+                                x: data.weekly_dates,
+                                y: data.weekly_calories,
+                                type: 'scatter',
+                                mode: 'lines',
+                                name: 'Weekly Calorie Intake'
+                            };
+
+                            const trace3 = {
+                                x: data.monthly_dates,
+                                y: data.monthly_calories,
+                                type: 'scatter',
+                                mode: 'lines',
+                                name: 'Monthly Calorie Intake'
+                            };
+    
+                            const layout = {
+                                title: 'Calorie Intake Over Time',
+                                xaxis: {
+                                    title: 'Date'
+                                },
+                                yaxis: {
+                                    title: 'Calorie Intake'
+                                }
+                            };
+    
+                            const config = {
+                                responsive: true
+                            };
+    
+                            Plotly.newPlot('plot', [trace1, trace2, trace3], layout, config);
+                            document.getElementById('plot').style.display = 'block';
+                        })
+                        .catch(error => console.error('Error fetching calorie intake visualization:', error));
+                });
+            });
+        </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                document.getElementById('analyseButton').addEventListener('click', function() {
+                    fetch('/analyse_periods', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({})
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('nextPeriodStartDate').textContent = 'Start Date: ' + data.next_period_start_date;
+                        document.getElementById('nextPeriodEndDate').textContent = 'End Date: ' + data.next_period_end_date;
+                        document.getElementById('nextPeriodInfo').style.display = 'block';
+                    })
+                    .catch(error => console.error('Error analysing period:', error));
+                });
+            });
+        </script>
+    </section>
+
+</body>
+</html>
